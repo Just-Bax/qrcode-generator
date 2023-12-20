@@ -12,7 +12,7 @@ import re
 from jsonschema import validate
 from onevizion import IntegrationLog, LogLevel
 from module import Module
-
+from module_error import ModuleError
 
 with open('settings.json', 'rb') as settings_file:
     settings_data = json.loads(settings_file.read().decode('utf-8'))
@@ -41,6 +41,6 @@ module = Module(module_log, settings_data)
 
 try:
     module.start()
-except Exception as e:
-    module_log.add(LogLevel.ERROR, str(e))
-    raise e
+except ModuleError as module_error:
+    module_log.add(LogLevel.ERROR, str(module_error))
+    raise module_error
