@@ -14,11 +14,23 @@
       "type": "string",
       "minLength": 70,
       "maxLength": 70
+    },
+    "qrcodeFillColor": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 30
+    },
+    "qrcodeBackgroudColor": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 30
     }
   },
   "required": [
     "ovUrl",
     "ovAccessKey",
-    "ovSecretKey"
+    "ovSecretKey",
+    "qrcodeFillColor",
+    "qrcodeBackgroudColor"
   ]
 }

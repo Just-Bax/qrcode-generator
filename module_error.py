@@ -1,5 +1,4 @@
 class ModuleError(Exception):
-    
     def __init__(self, error_message: str, description):
         self._message = error_message
         self._description = description

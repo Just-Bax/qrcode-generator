@@ -1,8 +1,39 @@
-from onevizion import Trackor, IntegrationLog
+from onevizion import Trackor, IntegrationLog, LogLevel
 from module_error import ModuleError
+from PIL import ImageDraw, ImageFont
 from typing import Any, Dict, List
-from generator import Generator
+from io import BytesIO
+import qrcode
+import base64
 import re
+
+class Generator:
+    def __init__(self, fill_color, back_color):
+        self.back_color = back_color
+        self.fill_color = fill_color
+
+    def generate_qrcode(self, asset_id, asset_name):
+        qr = qrcode.QRCode(version=1, box_size=12, border=6)
+        qr.add_data(asset_id); qr.make(fit=True)
+        img = qr.make_image(back_color=self.back_color, fill_color=self.fill_color)
+        qr_width, qr_height = img.size
+        space_height = qr_height/6
+        font = ImageFont.truetype("arial.ttf", 16)
+        draw = ImageDraw.Draw(img)
+        # Asset Name
+        _, _, txt_width, txt_height = draw.textbbox((0, 0), text=asset_name, font=font)
+        draw.text(((qr_width-txt_width)/2, (space_height-txt_height)/2), text=asset_name, fill=(255, 0, 0), font=font)
+        # Asset ID
+        _, _, txt_width, txt_height = draw.textbbox((0, 0), text=asset_id, font=font)
+        draw.text(((qr_width-txt_width)/2, ((qr_height-space_height)+(txt_height/2))), text=asset_id, fill=(0, 0, 0), font=font)
+        # Company Name
+        # _, _, txt_width, txt_height = draw.textbbox((0, 0), text=company_name, font=font)
+        # draw.text(((qr_width-txt_width)/2, ((qr_height-space_height)+(txt_height*2))), text=company_name, fill=(255, 0, 0), font=font)
+        qrcode_bytes = BytesIO()
+        img.save(qrcode_bytes, format='PNG')
+        qrcode_bytes = qrcode_bytes.getvalue()
+        qrcode_base64 = base64.b64encode(qrcode_bytes).decode('utf-8')
+        return qrcode_base64
 
 class OVAccessParameters:
     REGEXP_PROTOCOLS = '^(https|http)://'
@@ -13,7 +44,6 @@ class OVAccessParameters:
         self.ov_secret_key = ov_secret_key
 
 class OVTrackor:
-
     def __init__(self, ov_source_access_parameters: OVAccessParameters):
         self._ov_url_without_protocol = ov_source_access_parameters.ov_url_without_protocol
         self._ov_access_key = ov_source_access_parameters.ov_access_key
@@ -32,88 +62,57 @@ class OVTrackor:
             isTokenAuth=True
         )
 
-    def get_trackor_by_filters(self, trackor_key: str, filter_dict: Dict[str, str]) -> List[Dict[str, Any]]:
-        self.trackor_type_wrapper.read(filters=filter_dict)
-
-        if len(self.trackor_type_wrapper.errors):
-            raise ModuleError(
-                f'Failed to get_trackor_by_filters for {trackor_key}',
-                self.trackor_type_wrapper.errors
-            )
-
-        return list(self.trackor_type_wrapper.jsonData)
-
     def get_trackors_by_fields_and_search_trigger(self, fields_list: List[str], search_trigger: str) -> List[Dict[str, Any]]:
-        self.trackor_type_wrapper.read(
-            fields=fields_list, search=search_trigger
-        )
-
+        self.trackor_type_wrapper.read(fields=fields_list, search=search_trigger)
         if len(self.trackor_type_wrapper.errors) > 0:
             raise ModuleError('Failed to get_trackors_by_fields_and_search_trigger', self.trackor_type_wrapper.errors)
-
         return list(self.trackor_type_wrapper.jsonData)
 
     def update_fields_by_trackor_id(self, trackor_key: str, trackor_id: int, field_dict: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
-        self.trackor_type_wrapper.update(
-            trackorId=trackor_id, fields=field_dict
-        )
-
+        self.trackor_type_wrapper.update(trackorId=trackor_id, fields=field_dict)
         if len(self.trackor_type_wrapper.errors) > 0:
-            raise ModuleError(
-                f'Failed to update_fields_by_trackor_id for {trackor_key}',
-                self.trackor_type_wrapper.errors
-            )
-
+            raise ModuleError(f'Failed to update_fields_by_trackor_id for {trackor_key}', self.trackor_type_wrapper.errors)
         return self.trackor_type_wrapper.jsonData
 
-    def clean_trackor_trigger_by_filters(self, trackor_key: str, filter_dict: Dict[str, Any], field_dict: Dict[str, Any]):
-        self.trackor_type_wrapper.update(
-            filters=filter_dict, fields=field_dict
-        )
-
-        if len(self.trackor_type_wrapper.errors) > 0:
-            raise ModuleError(
-                f'Failed to clean_trackor_trigger_by_filters for {trackor_key}',
-                self.trackor_type_wrapper.errors
-            )
-
 class Module:
-    ASSET_ITEM_TRACKOR_TYPE = 'VHMECT_ASSET_ITEM'
-    GENERATE_QRCODE_FIELDNAME = 'VHMECT_ECAI_GENERATE_QR_CODE'
-    QRCODE_FIELDNAME = 'VHMECT_ECAI_ASSET_QR_CODE'
-    LOG_TRACKOR_KEY = 'Asset Item Trackor Key'
-    
+    TRACKOR_ID = 'TRACKOR_ID'
+    TRACKOR_KEY = 'TRACKOR_KEY'
+    ASSET_ITEM_TRACKOR_TYPE = 'EC_ASSET_ITEMS'
+    ASSET_NAME_FIELDNAME = 'ECAI_ASSET_NAME'
+    GENERATE_FIELDNAME = 'ECAI_GENERATE_QR_CODE'
+    QRCODE_FIELDNAME = 'ECAI_ASSET_QR_CODE'
+
     def __init__(self, ov_module_log: IntegrationLog, settings_data: dict):
         self._module_log = ov_module_log
         self._settings = settings_data
-        self._ov_source_access_parameters = OVAccessParameters(settings_data['ovUrl'], settings_data['ovAccessKey'], settings_data['ovSecretKey'])
-        self._ov_source_trackor = OVTrackor(self._ov_source_access_parameters)
-        self.generator = Generator(fill_color="#152B42", back_color="transparent")
+        self._ov_access_parameters = OVAccessParameters(settings_data['ovUrl'], settings_data['ovAccessKey'], settings_data['ovSecretKey'])
+        self._ov_trackor = OVTrackor(self._ov_access_parameters)
+        self._generator = Generator(fill_color=settings_data["qrcodeFillColor"], back_color=settings_data["qrcodeBackgroudColor"])
 
     def start(self):
         # self._module_log.add(LogLevel.INFO, 'Module is started')
-
-        self._ov_source_trackor.trackor_type_wrapper = self.ASSET_ITEM_TRACKOR_TYPE
-        asset_item_filter = {
-            self.GENERATE_QRCODE_FIELDNAME: '1'
-        }
-        asset_item_trackors = self._ov_source_trackor.get_trackor_by_filters(trackor_key=self.LOG_TRACKOR_KEY, filter_dict=asset_item_filter)
-        for asset_item_trackor in asset_item_trackors:
-            trackor_id = asset_item_trackor['TRACKOR_ID']
-            trackor_key = asset_item_trackor['TRACKOR_KEY']
-            qrcode_bytes = self.generator.generate_qrcode(value=trackor_key)
+        self._ov_trackor.trackor_type_wrapper = self.ASSET_ITEM_TRACKOR_TYPE
+        asset_items_fields_list = [self.TRACKOR_KEY, self.ASSET_NAME_FIELDNAME]
+        asset_items_search_trigger = f"equal({self.GENERATE_FIELDNAME}, 1)"
+        asset_items = self._ov_trackor.get_trackors_by_fields_and_search_trigger(fields_list=asset_items_fields_list, search_trigger=asset_items_search_trigger)
+        for asset_item in asset_items:
+            trackor_id = asset_item[self.TRACKOR_ID]
+            trackor_key = asset_item[self.TRACKOR_KEY]
+            asset_name = asset_item[self.ASSET_NAME_FIELDNAME]
+            qrcode_bytes = self._generator.generate_qrcode(asset_id=trackor_key, asset_name=asset_name)
             asset_item_fields = {
-                self.GENERATE_QRCODE_FIELDNAME: '0',
-                self.QRCODE_FIELDNAME: {"file_name": "qrcode.png", "data": qrcode_bytes}
+                self.GENERATE_FIELDNAME: '0',
+                self.QRCODE_FIELDNAME: {
+                    "file_name": f"{trackor_key}.png",
+                    "data": qrcode_bytes
+                }
             }
-            update_result = self._ov_source_trackor.update_fields_by_trackor_id(trackor_key=self.LOG_TRACKOR_KEY, trackor_id=trackor_id, field_dict=asset_item_fields)
-            print(update_result)
+            self._ov_trackor.update_fields_by_trackor_id(trackor_key=trackor_key, trackor_id=trackor_id, field_dict=asset_item_fields)
+            # self._module_log.add(LogLevel.INFO, f'Qrcode generated: trackor_id={trackor_id}, trackor_key={trackor_key}')
 
 if __name__ == "__main__":
-    settings = {
-        "ovUrl": "https://cloud-erp.onevizion.com", 
-        "ovAccessKey": "22smb8jNovkaKnRUKawH", 
-        "ovSecretKey": "jPWKtZ9tG7qFv6ZMuhtQCTvJ1RR3tS4NvErieer3VnrwcdZtYa48brZWBahO51wDegoK4n"
-    }
-    module = Module(ov_module_log=IntegrationLog, settings_data=settings)
+    import json
+    with open('settings.json', 'rb') as settings_file:
+        settings_data = json.loads(settings_file.read().decode('utf-8'))
+    module = Module(ov_module_log=IntegrationLog, settings_data=settings_data)
     module.start()

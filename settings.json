@@ -1,5 +1,7 @@
 {
-  "ovUrl": "https://cloud-erp.onevizion.com",
-  "ovAccessKey": "22smb8jNovkaKnRUKawH",
-  "ovSecretKey": "jPWKtZ9tG7qFv6ZMuhtQCTvJ1RR3tS4NvErieer3VnrwcdZtYa48brZWBahO51wDegoK4n"
+  "ovUrl": "https://sandbox-2022.onevizion.com",
+  "ovAccessKey": "WAE17Dk5RSfeYFbkw3T4",
+  "ovSecretKey": "PVATh4RxOz2aC50QgcUJPZCsP5ZI5OZbyJxhVpwv4EdE8jcyWxDp6E4jk1GIjPlad81fc6",
+  "qrcodeFillColor": "#152B42",
+  "qrcodeBackgroudColor": "#FFFFFF"
 }
