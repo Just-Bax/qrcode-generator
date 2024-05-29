@@ -3,5 +3,10 @@
   "ovAccessKey": "WAE17Dk5RSfeYFbkw3T4",
   "ovSecretKey": "PVATh4RxOz2aC50QgcUJPZCsP5ZI5OZbyJxhVpwv4EdE8jcyWxDp6E4jk1GIjPlad81fc6",
   "qrcodeFillColor": "#152B42",
-  "qrcodeBackgroudColor": "#FFFFFF"
+  "qrcodeBackgroudColor": "#FFFFFF",
+  "trackorType": "EC_ASSET_ITEMS",
+  "qrcodeGenerateField": "ECAI_GENERATE_QR_CODE",
+  "qrcodeImageField": "ECAI_ASSET_QR_CODE",
+  "qrcodeTitleField": "ECAI_ASSET_NAME",
+  "qrcodeValueField": "TRACKOR_KEY"
 }

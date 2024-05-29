@@ -16,14 +16,10 @@
       "maxLength": 70
     },
     "qrcodeFillColor": {
-      "type": "string",
-      "minLength": 3,
-      "maxLength": 30
+      "type": "string"
     },
     "qrcodeBackgroudColor": {
-      "type": "string",
-      "minLength": 3,
-      "maxLength": 30
+      "type": "string"
     }
   },
   "required": [
@@ -31,6 +27,11 @@
     "ovAccessKey",
     "ovSecretKey",
     "qrcodeFillColor",
-    "qrcodeBackgroudColor"
+    "qrcodeBackgroudColor",
+    "trackorType",
+    "qrcodeGenerateField",
+    "qrcodeImageField",
+    "qrcodeTitleField",
+    "qrcodeValueField"
   ]
 }
